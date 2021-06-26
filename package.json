@@ -1,0 +1,22 @@
+{
+  "name": "battlep4nth3r",
+  "version": "1.0.0",
+  "description": "A poor and awful Battlesnake written in JavaScript for Node.js",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whitep4nth3r/battlep4nth3r.git"
+  },
+  "author": "whitep4nth3r",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "jest": "^27.0.5"
+  }
+}
