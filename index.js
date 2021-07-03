@@ -32,122 +32,183 @@ function handleStart(request, response) {
   response.status(200).send("ok");
 }
 
-function getNextBlockCoords(headBlock, move) {
-  switch (move) {
-    case "up":
-      return { x: headBlock.x, y: headBlock.y + 1 };
-    case "down":
-      return { x: headBlock.x, y: headBlock.y - 1 };
-    case "left":
-      return { x: headBlock.x - 1, y: headBlock.y };
-    case "right":
-      return { x: headBlock.x + 1, y: headBlock.y };
-    default:
-      return false;
-  }
-}
+/**
+ * Calculate a map of coordinates representing the board's current state
+ * for the current move
+ * @param {*} boardHeight
+ * @param {*} boardWidth
+ * @param {*} foodArray
+ * @param {*} thisSnake
+ * @param {*} allSnakes
+ * @returns Map();
+ */
 
-// WORK OUT BEST MOVES TO GET FOOD
+function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes) {
+  const map = new Map();
 
-// CAN WE WORK OUT A RISK FACTOR PER MOVE?
-
-// WHAT IS SHOUT?
-
-// gameData.board.snakes.food is an array of all food coords
-// console.log(gameData.board.food.map((thing) => thing));
-
-function generateMove(goodMoves) {
-  return goodMoves[Math.floor(Math.random() * goodMoves.length)];
-}
-
-function getWallBoundaries(boardWidth, boardHeight) {
-  // indexes start at 0
-
-  const boundaries = new Set();
-
-  //left wall
-  for (let i = 0; i < boardHeight; i++) {
-    boundaries.add(JSON.stringify({ x: 0, y: i }));
+  for (let x = 0; x < boardWidth; x++) {
+    for (let y = 0; y < boardHeight; y++) {
+      map.set(`${x},${y}`, {
+        x,
+        y,
+        cost: boardHeight * boardWidth + 1,
+        food: false,
+        previous: null,
+        direction: null,
+      });
+    }
   }
 
-  //bottom wall
-  for (let j = 0; j < boardWidth; j++) {
-    boundaries.add(JSON.stringify({ x: j, y: 0 }));
+  for (food of foodArray) {
+    // Get from the map
+    let entry = map.get(`${food.x},${food.y}`);
+    // Update
+    entry.food = true;
+    // Re-set in the map
+    map.set(`${food.x},${food.y}`, entry);
   }
 
-  //right wall
-  for (let k = 0; k < boardHeight; k++) {
-    boundaries.add(JSON.stringify({ x: boardWidth - 1, y: k }));
+  // Remove all snakeParts from map
+  // we cannot move here
+  for (snake of allSnakes) {
+    for (block of snake.body) {
+      map.delete(`${block.x},${block.y}`);
+    }
   }
 
-  //top wall
-  for (let l = 0; l < boardWidth; l++) {
-    boundaries.add(JSON.stringify({ x: l, y: boardHeight - 1 }));
-  }
-
-  const array = Array.from(boundaries);
-  const convertedArray = array.map((item) => {
-    return JSON.parse(item);
+  // Re add thisSnake head
+  // this is the start of the pathing
+  map.set(`${thisSnake.head.x},${thisSnake.head.y}`, {
+    x: thisSnake.head.x,
+    y: thisSnake.head.y,
+    cost: 0,
+    food: false,
+    previous: null,
+    direction: null,
   });
 
-  return convertedArray;
+  return map;
 }
 
-function calculateGoodMoves(boardHeight, boardWidth, headBlock) {
-  const possibleMoves = [];
+/**
+ *
+ * @param {*} map
+ * @param {*} snakeHead
+ * returns {x, y, cost, food, previous} || null
+ */
+function calculateCheapestFoodLocation(map, snakeHead) {
+  const queue = [];
 
-  if (headBlock.x !== boardWidth - 1) {
-    possibleMoves.push("right");
+  // Put head square in queue
+  queue.push(map.get(`${snakeHead.x},${snakeHead.y}`));
+
+  while (queue.length > 0) {
+    const currentSquare = queue.shift();
+
+    if (currentSquare.food) {
+      return currentSquare;
+    }
+
+    // squareAbove
+    if ((squareAbove = map.get(`${currentSquare.x},${currentSquare.y + 1}`))) {
+      const newCost = currentSquare.cost + 1;
+
+      if (newCost < squareAbove.cost) {
+        squareAbove.cost = currentSquare.cost + 1;
+        squareAbove.previous = currentSquare;
+        squareAbove.direction = "up";
+        map.set(`${squareAbove.x},${squareAbove.y}`, squareAbove);
+
+        queue.push(squareAbove);
+      }
+    }
+
+    // squareBelow
+    if ((squareBelow = map.get(`${currentSquare.x},${currentSquare.y - 1}`))) {
+      const newCost = currentSquare.cost + 1;
+
+      if (newCost < squareBelow.cost) {
+        squareBelow.cost = currentSquare.cost + 1;
+        squareBelow.previous = currentSquare;
+        squareBelow.direction = "down";
+        map.set(`${squareBelow.x},${squareBelow.y}`, squareBelow);
+
+        queue.push(squareBelow);
+      }
+    }
+
+    // squareLeft
+    if ((squareLeft = map.get(`${currentSquare.x - 1},${currentSquare.y}`))) {
+      const newCost = currentSquare.cost + 1;
+
+      if (newCost < squareLeft.cost) {
+        squareLeft.cost = currentSquare.cost + 1;
+        squareLeft.previous = currentSquare;
+        squareLeft.direction = "left";
+        map.set(`${squareLeft.x},${squareLeft.y}`, squareLeft);
+
+        queue.push(squareLeft);
+      }
+    }
+
+    // squareRight
+    if ((squareRight = map.get(`${currentSquare.x + 1},${currentSquare.y}`))) {
+      const newCost = currentSquare.cost + 1;
+
+      if (newCost < squareRight.cost) {
+        squareRight.cost = currentSquare.cost + 1;
+        squareRight.previous = currentSquare;
+        squareRight.direction = "right";
+        map.set(`${squareRight.x},${squareRight.y}`, squareRight);
+
+        queue.push(squareRight);
+      }
+    }
+
+    queue.sort((a, b) => a.cost < b.cost);
   }
 
-  if (headBlock.x !== 0) {
-    possibleMoves.push("left");
-  }
-
-  if (headBlock.y !== 0) {
-    possibleMoves.push("down");
-  }
-
-  if (headBlock.y !== boardHeight - 1) {
-    possibleMoves.push("up");
-  }
-
-  return possibleMoves;
+  return null;
 }
 
-function generateNonCollidingMove(gameData) {
-  // const wallBoundaries = getWallBoundaries(gameData.board.height, gameData.board.width);
-  const occupiedBlocks = gameData.you.body.map((coord) => coord);
-  const headBlock = gameData.you.head;
+function getPathToFood(nextFood) {
+  const path = [nextFood];
+  let thisBlock = nextFood.previous;
 
-  const goodMoves = calculateGoodMoves(gameData.board.height, gameData.board.width, headBlock);
-
-  const move = generateMove(goodMoves);
-  const nextBlock = getNextBlockCoords(headBlock, move);
-
-  // occupiedBlocks avoids colliding with myself
-  if (occupiedBlocks.find((block) => block === nextBlock)) {
-    return generateNonCollidingMove(gameData);
-  } else {
-    return move;
+  while (thisBlock.cost > 1) {
+    // this adds the item at the start of the array
+    path.unshift(thisBlock.previous);
+    thisBlock = thisBlock.previous;
   }
+
+  return path;
 }
 
 function handleMove(request, response) {
   var gameData = request.body;
+  // console.log(gameData);
 
-  console.log(gameData);
-  // gameData.board.snakes is an array of all snakes on the board
-  // with coordinates of the head and coordinates of body pieces + length
+  const { board } = gameData;
 
-  console.log(gameData.board.snakes.map((thing) => thing));
+  const map = createMapForMove(board.height, board.width, board.food, gameData.you, board.snakes);
+  const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
-  const move = generateNonCollidingMove(gameData);
+  if (nextFood !== null) {
+    const pathToFood = getPathToFood(nextFood);
 
-  console.log("MOVE: " + move);
-  response.status(200).send({
-    move: move,
-  });
+    console.log("MOVE: " + pathToFood[0].direction);
+
+    response.status(200).send({
+      move: pathToFood[0].direction,
+    });
+  } else {
+    const possibleMoves = ["left", "right", "up", "down"];
+    const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+    console.log("SENDING RANDOM MOVE: " + move);
+    response.status(200).send({
+      move: move,
+    });
+  }
 }
 
 function handleEnd(request, response) {
@@ -156,8 +217,3 @@ function handleEnd(request, response) {
   console.log("END");
   response.status(200).send("ok");
 }
-
-module.exports = {
-  getWallBoundaries,
-  calculateGoodMoves,
-};
