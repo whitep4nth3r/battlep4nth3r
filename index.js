@@ -17,9 +17,9 @@ app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0
 function handleIndex(request, response) {
   var battlesnakeInfo = {
     apiversion: "1",
-    author: "",
-    color: "#f1101a",
-    head: "caffeine",
+    author: "whitep4nth3r",
+    color: "#ffb626",
+    head: "bendr",
     tail: "pixel",
   };
   response.status(200).json(battlesnakeInfo);
@@ -165,15 +165,27 @@ function calculateCheapestFoodLocation(map, snakeHead) {
       }
     }
 
-    queue.sort((a, b) => a.cost < b.cost);
+    queue.sort(sortByCostAscending);
   }
 
   return null;
 }
 
-function getPathToFood(nextFood) {
-  const path = [nextFood];
-  let thisBlock = nextFood.previous;
+function sortByCostAscending(a, b) {
+  if (a.cost < b.cost) {
+    return -1;
+  }
+
+  if (a.cost > b.cost) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getPath(target) {
+  const path = [target];
+  let thisBlock = target.previous;
 
   while (thisBlock.cost > 1) {
     // this adds the item at the start of the array
@@ -184,9 +196,27 @@ function getPathToFood(nextFood) {
   return path;
 }
 
+function getFurthestOpenPoint(map, boardHeight, boardWidth) {
+  const highestDefaultCost = boardHeight * boardWidth + 1;
+
+  const suitablyCostedSquares = [];
+
+  for (const [key, value] of map.entries()) {
+    if (value.cost < highestDefaultCost) {
+      suitablyCostedSquares.push(value);
+    }
+  }
+
+  suitablyCostedSquares.sort(sortByCostAscending);
+
+  return suitablyCostedSquares.pop();
+}
+
 function handleMove(request, response) {
   var gameData = request.body;
-  // console.log(gameData);
+
+  const possibleMoves = ["left", "right", "up", "down"];
+  let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 
   const { board } = gameData;
 
@@ -194,21 +224,24 @@ function handleMove(request, response) {
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
   if (nextFood !== null) {
-    const pathToFood = getPathToFood(nextFood);
-
-    console.log("MOVE: " + pathToFood[0].direction);
-
-    response.status(200).send({
-      move: pathToFood[0].direction,
-    });
+    const pathToFood = getPath(nextFood);
+    move = pathToFood[0].direction;
+    console.log("HEADING TO FOOD MOVE: " + move);
   } else {
-    const possibleMoves = ["left", "right", "up", "down"];
-    const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-    console.log("SENDING RANDOM MOVE: " + move);
-    response.status(200).send({
-      move: move,
-    });
+    const furthestOpenPoint = getFurthestOpenPoint(map, board.height, board.width);
+
+    if (furthestOpenPoint.cost > 0) {
+      const path = getPath(furthestOpenPoint);
+      move = path[0].direction;
+      console.log("FURTHEST OPEN POINT MOVE: " + move);
+    } else {
+      console.log("SENDING RANDOM MOVE: " + move);
+    }
   }
+
+  response.status(200).send({
+    move,
+  });
 }
 
 function handleEnd(request, response) {
