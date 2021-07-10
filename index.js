@@ -1,18 +1,22 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const fs = require("fs");
+const visualise = require("./visualise");
 
 const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(bodyParser.json());
+app.use("/visualise", express.static("static"));
+app.get("/visualise_data", (req, res) => res.json(visualise.getData()));
 
 app.get("/", handleIndex);
 app.post("/start", handleStart);
 app.post("/move", handleMove);
 app.post("/end", handleEnd);
 
-app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`)
+);
 
 function handleIndex(request, response) {
   var battlesnakeInfo = {
@@ -26,10 +30,10 @@ function handleIndex(request, response) {
 }
 
 function handleStart(request, response) {
-  var gameData = request.body;
-
   console.log("START");
   response.status(200).send("ok");
+
+  visualise.startVisualise();
 }
 
 /**
@@ -43,7 +47,13 @@ function handleStart(request, response) {
  * @returns Map();
  */
 
-function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes) {
+function createMapForMove(
+  boardHeight,
+  boardWidth,
+  foodArray,
+  thisSnake,
+  allSnakes
+) {
   const map = new Map();
 
   for (let x = 0; x < boardWidth; x++) {
@@ -104,6 +114,7 @@ function calculateCheapestFoodLocation(map, snakeHead) {
 
   while (queue.length > 0) {
     const currentSquare = queue.shift();
+    visualise.addState(map, queue, currentSquare);
 
     if (currentSquare.food) {
       return currentSquare;
@@ -220,7 +231,14 @@ function handleMove(request, response) {
 
   const { board } = gameData;
 
-  const map = createMapForMove(board.height, board.width, board.food, gameData.you, board.snakes);
+  const map = createMapForMove(
+    board.height,
+    board.width,
+    board.food,
+    gameData.you,
+    board.snakes
+  );
+  visualise.startMove(map);
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
   if (nextFood !== null) {
@@ -228,7 +246,11 @@ function handleMove(request, response) {
     move = pathToFood[0].direction;
     console.log("HEADING TO FOOD MOVE: " + move);
   } else {
-    const furthestOpenPoint = getFurthestOpenPoint(map, board.height, board.width);
+    const furthestOpenPoint = getFurthestOpenPoint(
+      map,
+      board.height,
+      board.width
+    );
 
     if (furthestOpenPoint.cost > 0) {
       const path = getPath(furthestOpenPoint);
@@ -245,8 +267,6 @@ function handleMove(request, response) {
 }
 
 function handleEnd(request, response) {
-  var gameData = request.body;
-
   console.log("END");
   response.status(200).send("ok");
 }
