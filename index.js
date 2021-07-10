@@ -83,6 +83,37 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
     for (block of snake.body) {
       map.delete(`${block.x},${block.y}`);
     }
+
+    // First element of the snake body is the head
+    const head = snake.body[0];
+
+    if (snake.id !== thisSnake.id) {
+      // Increase the price of squares around the head IF the body is not shorter than our body
+
+      if (map.has(`${head.x - 1},${head.y}`)) {
+        const mapBlock = map.get(`${head.x - 1},${head.y}`);
+        mapBlock.price = 99999;
+        map.set(`${head.x - 1},${head.y}`, mapBlock);
+      }
+
+      if (map.has(`${head.x + 1},${head.y}`)) {
+        const mapBlock = map.get(`${head.x + 1},${head.y}`);
+        mapBlock.price = 99999;
+        map.set(`${head.x + 1},${head.y}`, mapBlock);
+      }
+
+      if (map.has(`${head.x},${head.y - 1}`)) {
+        const mapBlock = map.get(`${head.x},${head.y - 1}`);
+        mapBlock.price = 99999;
+        map.set(`${head.x},${head.y - 1}`, mapBlock);
+      }
+
+      if (map.has(`${head.x},${head.y + 1}`)) {
+        const mapBlock = map.get(`${head.x},${head.y + 1}`);
+        mapBlock.price = 99999;
+        map.set(`${head.x},${head.y + 1}`, mapBlock);
+      }
+    }
   }
 
   for (hazard of hazardArray) {
@@ -227,7 +258,7 @@ function getPath(target) {
     thisBlock = thisBlock.previous;
   }
 
-  return path.filter(square => square.direction !== null);
+  return path.filter((square) => square.direction !== null);
 }
 
 function getFurthestOpenPoint(map, boardHeight, boardWidth) {
@@ -254,7 +285,14 @@ function handleMove(request, response) {
 
   const { board } = gameData;
 
-  const map = createMapForMove(board.height, board.width, board.food, gameData.you, board.snakes, board.hazards);
+  const map = createMapForMove(
+    board.height,
+    board.width,
+    board.food,
+    gameData.you,
+    board.snakes,
+    board.hazards,
+  );
   visualise.startMove(map);
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
