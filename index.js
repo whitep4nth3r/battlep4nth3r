@@ -2,7 +2,7 @@ const express = require("express");
 const visualise = require("./visualise");
 
 /**
- * STOP EATING SELF
+ * STOP CAVING
  *
  * STOP GOING OUT OF BOUNDS
  *
@@ -68,6 +68,7 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
         food: false,
         previous: null,
         direction: null,
+        price: 1,
       });
     }
   }
@@ -87,6 +88,20 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
     for (block of snake.body) {
       map.delete(`${block.x},${block.y}`);
     }
+  }
+
+  // Set the price of the square to more than the longest possible path if it's only got less than 3 clear sides
+  for (const [key, square] of map) {
+    let clearAround = 0;
+    clearAround += map.has(`${square.x + 1},${square.y}`) ? 1 : 0;
+    clearAround += map.has(`${square.x - 1},${square.y}`) ? 1 : 0;
+    clearAround += map.has(`${square.x},${square.y + 1}`) ? 1 : 0;
+    clearAround += map.has(`${square.x},${square.y - 1}`) ? 1 : 0;
+
+    if (clearAround < 3 && !square.food) {
+      square.price = 20;
+    }
+    map.set(key, square);
   }
 
   // Re add thisSnake head
@@ -128,7 +143,7 @@ function calculateCheapestFoodLocation(map, snakeHead) {
       const newCost = currentSquare.cost + 1;
 
       if (newCost < squareAbove.cost) {
-        squareAbove.cost = currentSquare.cost + 1;
+        squareAbove.cost = currentSquare.cost + squareAbove.price;
         squareAbove.previous = currentSquare;
         squareAbove.direction = "up";
         map.set(`${squareAbove.x},${squareAbove.y}`, squareAbove);
@@ -142,7 +157,7 @@ function calculateCheapestFoodLocation(map, snakeHead) {
       const newCost = currentSquare.cost + 1;
 
       if (newCost < squareBelow.cost) {
-        squareBelow.cost = currentSquare.cost + 1;
+        squareBelow.cost = currentSquare.cost + squareBelow.price;
         squareBelow.previous = currentSquare;
         squareBelow.direction = "down";
         map.set(`${squareBelow.x},${squareBelow.y}`, squareBelow);
@@ -156,7 +171,7 @@ function calculateCheapestFoodLocation(map, snakeHead) {
       const newCost = currentSquare.cost + 1;
 
       if (newCost < squareLeft.cost) {
-        squareLeft.cost = currentSquare.cost + 1;
+        squareLeft.cost = currentSquare.cost + squareLeft.price;
         squareLeft.previous = currentSquare;
         squareLeft.direction = "left";
         map.set(`${squareLeft.x},${squareLeft.y}`, squareLeft);
@@ -170,7 +185,7 @@ function calculateCheapestFoodLocation(map, snakeHead) {
       const newCost = currentSquare.cost + 1;
 
       if (newCost < squareRight.cost) {
-        squareRight.cost = currentSquare.cost + 1;
+        squareRight.cost = currentSquare.cost + squareRight.price;
         squareRight.previous = currentSquare;
         squareRight.direction = "right";
         map.set(`${squareRight.x},${squareRight.y}`, squareRight);
@@ -208,7 +223,7 @@ function getPath(target) {
     thisBlock = thisBlock.previous;
   }
 
-  return path;
+  return path.filter(square => square.direction !== null);
 }
 
 function getFurthestOpenPoint(map, boardHeight, boardWidth) {
