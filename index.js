@@ -2,11 +2,6 @@ const express = require("express");
 const visualise = require("./visualise");
 
 /**
- * STOP CAVING
- *
- * STOP GOING OUT OF BOUNDS
- *
- * AVOID HAZARDS
  *
  * CONSIDER ATTACKING OTHER SNAKE WHEN WE ARE LONGER
  *
@@ -56,7 +51,7 @@ function handleStart(request, response) {
  * @returns Map();
  */
 
-function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes) {
+function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes, hazardArray) {
   const map = new Map();
 
   for (let x = 0; x < boardWidth; x++) {
@@ -88,6 +83,15 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
     for (block of snake.body) {
       map.delete(`${block.x},${block.y}`);
     }
+  }
+
+  for (hazard of hazardArray) {
+    // Get from the map
+    let entry = map.get(`${food.x},${food.y}`);
+    // Update
+    entry.price = 15;
+    // Re-set in the map
+    map.set(`${food.x},${food.y}`, entry);
   }
 
   // Set the price of the square to more than the longest possible path if it's only got less than 3 clear sides
@@ -250,7 +254,7 @@ function handleMove(request, response) {
 
   const { board } = gameData;
 
-  const map = createMapForMove(board.height, board.width, board.food, gameData.you, board.snakes);
+  const map = createMapForMove(board.height, board.width, board.food, gameData.you, board.snakes, board.hazards);
   visualise.startMove(map);
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
