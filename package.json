@@ -4,7 +4,8 @@
   "description": "A poor and awful Battlesnake written in JavaScript for Node.js",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "dev": "nodemon index.js",
+    "start": "node index.js",
     "test": "jest",
     "game": "battlesnake play -W 11 -H 11 -u http://127.0.0.1:3000 -g solo"
   },
