@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Path-finding Visualiser</title>
+    <style>
+      * {
+        background-color: black;
+        color: white;
+      }
+      label {
+        display: inline-block;
+        width: 100px;
+      }
+      input[type="range"] {
+        width: 335px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <label for="turn_slider" id="turn_slider_label">Turn 0</label>
+      <input
+        type="range"
+        min="0"
+        max="0"
+        id="turn_slider"
+        oninput="setTurn(this.value)"
+        onchange="setTurn(this.value)"
+      />
+    </div>
+    <div>
+      <label for="state_slider" id="state_slider_label">State 0</label>
+      <input
+        type="range"
+        min="0"
+        max="0"
+        id="state_slider"
+        oninput="setState(this.value)"
+        onchange="setState(this.value)"
+      />
+    </div>
+
+    <canvas id="state_draw" height="440" width="440"></canvas>
+
+    <script>
+      fetch("/visualise_data")
+        .then((response) => response.json())
+        .then(setData);
+
+      const square_size = 40;
+
+      let data = [];
+      let current_turn = 0;
+      function setData(response) {
+        data = response;
+        if (!data.length) {
+          alert("There is no data here");
+          return;
+        }
+        document.getElementById("turn_slider").max = data.length - 1;
+        document.getElementById("turn_slider").value = 0;
+        setTurn(0);
+      }
+
+      function setTurn(turn) {
+        current_turn = +turn;
+        document.getElementById("turn_slider_label").innerText = `Turn ${
+          1 + current_turn
+        } / ${data.length}`;
+
+        document.getElementById("state_slider").max =
+          data[current_turn].length - 1;
+        document.getElementById("state_slider").value = 0;
+        setState(0);
+      }
+
+      function setState(state) {
+        document.getElementById("state_slider_label").innerText = `State ${
+          +state + 1
+        } / ${data[current_turn].length}`;
+        drawState(data[current_turn][state]);
+      }
+
+      function drawState(state) {
+        const canvas = document.getElementById("state_draw");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.height, canvas.width);
+        state.state.forEach((square) => {
+          ctx.beginPath();
+          ctx.strokeStyle = "white";
+          ctx.fillStyle = "#5a5c1a";
+          if (square.food) {
+            ctx.fillRect(
+              square.x * square_size,
+              canvas.height - square.y * square_size - square_size,
+              square_size,
+              square_size
+            );
+          } else {
+            ctx.rect(
+              square.x * square_size,
+              canvas.height - square.y * square_size - square_size,
+              square_size,
+              square_size
+            );
+          }
+          ctx.stroke();
+          ctx.beginPath();
+          if (square.x === state.current.x && square.y === state.current.y) {
+            ctx.strokeStyle = "#d52d2d";
+          } else if (
+            state.queue.some(
+              (entry) => entry.x === square.x && entry.y === square.y
+            )
+          ) {
+            ctx.strokeStyle = "#7373d2";
+          } else {
+            ctx.strokeStyle = "white";
+          }
+          ctx.font = "18px Arial";
+          const text_size = ctx.measureText(square.cost);
+          ctx.strokeText(
+            square.cost,
+            square.x * square_size + (square_size / 2 - text_size.width / 2),
+            canvas.height - square.y * square_size - 15
+          );
+        });
+
+        let sq = state.current;
+        while (sq.previous) {
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.strokeStyle = "#69e303";
+          ctx.moveTo(
+            sq.x * square_size + square_size / 2,
+            canvas.height - sq.y * square_size - square_size / 2
+          );
+          ctx.lineTo(
+            sq.previous.x * square_size + square_size / 2,
+            canvas.height - sq.previous.y * square_size - square_size / 2
+          );
+          sq = sq.previous;
+        }
+        ctx.stroke();
+      }
+    </script>
+  </body>
+</html>

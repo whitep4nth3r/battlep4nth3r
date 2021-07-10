@@ -4,19 +4,24 @@
   "description": "A poor and awful Battlesnake written in JavaScript for Node.js",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon index.js",
     "start": "node index.js",
-    "test": "jest"
+    "test": "jest",
+    "game": "battlesnake play -W 11 -H 11 -u http://127.0.0.1:3000 -g solo"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/whitep4nth3r/battlep4nth3r.git"
   },
   "author": "whitep4nth3r",
+  "contributors": ["SociableSteve"],
   "license": "MIT",
   "dependencies": {
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "jest": "^27.0.5"
+    "jest": "^27.0.5",
+    "nodemon": "^2.0.11",
+    "prettier": "^2.3.2"
   }
 }
