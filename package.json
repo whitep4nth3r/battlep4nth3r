@@ -14,6 +14,7 @@
     "url": "git+https://github.com/whitep4nth3r/battlep4nth3r.git"
   },
   "author": "whitep4nth3r",
+  "contributors": ["SociableSteve"],
   "license": "MIT",
   "dependencies": {
     "express": "^4.17.1"
