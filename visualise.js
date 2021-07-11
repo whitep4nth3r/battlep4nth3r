@@ -5,14 +5,18 @@ module.exports.startVisualise = function () {
 };
 
 module.exports.startMove = function () {
-  state_list.push([]);
+  if (process.env.NODE_ENV === "dev") {
+    state_list.push([]);
+  }
 };
 module.exports.addState = function (state, queue, current) {
-  state_list[state_list.length - 1].push({
-    state: deepClone(Array.from(state).map((m) => m[1])),
-    current: deepClone(current),
-    queue: deepClone(queue),
-  });
+  if (process.env.NODE_ENV === "dev") {
+    state_list[state_list.length - 1].push({
+      state: deepClone(Array.from(state).map((m) => m[1])),
+      current: deepClone(current),
+      queue: deepClone(queue),
+    });
+  }
 };
 
 module.exports.getData = function () {
