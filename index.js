@@ -3,6 +3,9 @@ const morgan = require("morgan");
 const visualise = require("./visualise");
 
 /**
+ *
+ * CONSIDER ATTACKING OTHER SNAKE WHEN WE ARE LONGER
+ *
  * SHOULD WE EAT FOOD ACTUALLY?
  */
 
@@ -235,90 +238,6 @@ function calculateCheapestFoodLocation(map, snakeHead) {
   return null;
 }
 
-/**
- *
- * @param {*} map
- * @param {*} snakeHead
- * @param {*} targetLocation
- * returns {x, y, cost, food, previous} || null
- */
-function calculateCheapestPathToLocation(map, snakeHead, targetLocation) {
-  console.log("RUNNING: calculateCheapestPathToLocation()");
-  const queue = [];
-
-  // Put head square in queue
-  queue.push(map.get(`${snakeHead.x},${snakeHead.y}`));
-
-  while (queue.length > 0) {
-    const currentSquare = queue.shift();
-    visualise.addState(map, queue, currentSquare);
-
-    if (currentSquare.x === targetLocation.x && currentSquare.y === targetLocation.y) {
-      return currentSquare;
-    }
-
-    // squareAbove
-    if ((squareAbove = map.get(`${currentSquare.x},${currentSquare.y + 1}`))) {
-      const newCost = currentSquare.cost + 1;
-
-      if (newCost < squareAbove.cost) {
-        squareAbove.cost = currentSquare.cost + squareAbove.price;
-        squareAbove.previous = currentSquare;
-        squareAbove.direction = "up";
-        map.set(`${squareAbove.x},${squareAbove.y}`, squareAbove);
-
-        queue.push(squareAbove);
-      }
-    }
-
-    // squareBelow
-    if ((squareBelow = map.get(`${currentSquare.x},${currentSquare.y - 1}`))) {
-      const newCost = currentSquare.cost + 1;
-
-      if (newCost < squareBelow.cost) {
-        squareBelow.cost = currentSquare.cost + squareBelow.price;
-        squareBelow.previous = currentSquare;
-        squareBelow.direction = "down";
-        map.set(`${squareBelow.x},${squareBelow.y}`, squareBelow);
-
-        queue.push(squareBelow);
-      }
-    }
-
-    // squareLeft
-    if ((squareLeft = map.get(`${currentSquare.x - 1},${currentSquare.y}`))) {
-      const newCost = currentSquare.cost + 1;
-
-      if (newCost < squareLeft.cost) {
-        squareLeft.cost = currentSquare.cost + squareLeft.price;
-        squareLeft.previous = currentSquare;
-        squareLeft.direction = "left";
-        map.set(`${squareLeft.x},${squareLeft.y}`, squareLeft);
-
-        queue.push(squareLeft);
-      }
-    }
-
-    // squareRight
-    if ((squareRight = map.get(`${currentSquare.x + 1},${currentSquare.y}`))) {
-      const newCost = currentSquare.cost + 1;
-
-      if (newCost < squareRight.cost) {
-        squareRight.cost = currentSquare.cost + squareRight.price;
-        squareRight.previous = currentSquare;
-        squareRight.direction = "right";
-        map.set(`${squareRight.x},${squareRight.y}`, squareRight);
-
-        queue.push(squareRight);
-      }
-    }
-
-    queue.sort(sortByCostAscending);
-  }
-
-  return null;
-}
-
 function sortByCostAscending(a, b) {
   if (a.cost < b.cost) {
     return -1;
@@ -362,23 +281,6 @@ function getFurthestOpenPoint(map, boardHeight, boardWidth) {
   return suitablyCostedSquares.pop();
 }
 
-function sortByArrayLength(a, b) {
-  if (a.length < b.length) {
-    return -1;
-  }
-
-  if (a.length > b.length) {
-    return 1;
-  }
-
-  return 0;
-}
-
-function getShortestSnake(snakes) {
-  const sortedArray = snakes.sort(sortByArrayLength);
-  return sortedArray[0];
-}
-
 function handleMove(request, response) {
   var gameData = request.body;
 
@@ -396,18 +298,10 @@ function handleMove(request, response) {
     board.hazards,
   );
   visualise.startMove(map);
-  // IF health is >50, and a shorter snake exists, ATTACK!
-  const snakeToAttack = getShortestSnake(board.snakes);
-  let target;
+  const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
 
-  if (gameData.you.health > 50 && snakeToAttack.body.length < gameData.you.body.length) {
-    target = calculateCheapestPathToLocation(map, gameData.you.head, snakeToAttack.body[0]);
-  } else {
-    target = calculateCheapestFoodLocation(map, gameData.you.head);
-  }
-
-  if (target !== null) {
-    const pathToFood = getPath(target);
+  if (nextFood !== null) {
+    const pathToFood = getPath(nextFood);
     move = pathToFood[0].direction;
     console.log("HEADING TO FOOD MOVE: " + move);
   } else {
