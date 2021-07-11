@@ -22,9 +22,7 @@ app.post("/start", handleStart);
 app.post("/move", handleMove);
 app.post("/end", handleEnd);
 
-app.listen(PORT, () =>
-  console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`)
-);
+app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`));
 
 function handleIndex(request, response) {
   var battlesnakeInfo = {
@@ -55,14 +53,7 @@ function handleStart(request, response) {
  * @returns Map();
  */
 
-function createMapForMove(
-  boardHeight,
-  boardWidth,
-  foodArray,
-  thisSnake,
-  allSnakes,
-  hazardArray
-) {
+function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes, hazardArray) {
   const map = new Map();
 
   for (let x = 0; x < boardWidth; x++) {
@@ -171,6 +162,7 @@ function createMapForMove(
  * returns {x, y, cost, food, previous} || null
  */
 function calculateCheapestFoodLocation(map, snakeHead) {
+  console.log("RUNNING: calculateCheapestFoodLocation()");
   const queue = [];
 
   // Put head square in queue
@@ -259,7 +251,7 @@ function sortByCostAscending(a, b) {
 }
 
 function getPath(target) {
-  // this goes wrong when the food is two squares away in right angle — total of 2 cost
+  console.log("RUNNING: getPath()");
   const path = [target];
   let thisBlock = target;
 
@@ -273,6 +265,7 @@ function getPath(target) {
 }
 
 function getFurthestOpenPoint(map, boardHeight, boardWidth) {
+  console.log("RUNNING: getFurthestOpenPoint()");
   const highestDefaultCost = boardHeight * boardWidth + 1;
 
   const suitablyCostedSquares = [];
@@ -302,7 +295,7 @@ function handleMove(request, response) {
     board.food,
     gameData.you,
     board.snakes,
-    board.hazards
+    board.hazards,
   );
   visualise.startMove(map);
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
@@ -312,11 +305,7 @@ function handleMove(request, response) {
     move = pathToFood[0].direction;
     console.log("HEADING TO FOOD MOVE: " + move);
   } else {
-    const furthestOpenPoint = getFurthestOpenPoint(
-      map,
-      board.height,
-      board.width
-    );
+    const furthestOpenPoint = getFurthestOpenPoint(map, board.height, board.width);
 
     if (furthestOpenPoint.cost > 0) {
       const path = getPath(furthestOpenPoint);
