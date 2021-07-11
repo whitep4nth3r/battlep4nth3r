@@ -14,10 +14,13 @@
     "url": "git+https://github.com/whitep4nth3r/battlep4nth3r.git"
   },
   "author": "whitep4nth3r",
-  "contributors": ["SociableSteve"],
+  "contributors": [
+    "SociableSteve"
+  ],
   "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "jest": "^27.0.5",
