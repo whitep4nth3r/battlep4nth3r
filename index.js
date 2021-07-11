@@ -1,4 +1,5 @@
 const express = require("express");
+const morgan = require("morgan");
 const visualise = require("./visualise");
 
 /**
@@ -11,6 +12,7 @@ const visualise = require("./visualise");
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+app.use(morgan("Took :response-time ms"));
 app.use(express.json());
 app.use("/visualise", express.static("static"));
 app.get("/visualise_data", (req, res) => res.json(visualise.getData()));
@@ -20,7 +22,9 @@ app.post("/start", handleStart);
 app.post("/move", handleMove);
 app.post("/end", handleEnd);
 
-app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`)
+);
 
 function handleIndex(request, response) {
   var battlesnakeInfo = {
@@ -51,7 +55,14 @@ function handleStart(request, response) {
  * @returns Map();
  */
 
-function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes, hazardArray) {
+function createMapForMove(
+  boardHeight,
+  boardWidth,
+  foodArray,
+  thisSnake,
+  allSnakes,
+  hazardArray
+) {
   const map = new Map();
 
   for (let x = 0; x < boardWidth; x++) {
@@ -291,7 +302,7 @@ function handleMove(request, response) {
     board.food,
     gameData.you,
     board.snakes,
-    board.hazards,
+    board.hazards
   );
   visualise.startMove(map);
   const nextFood = calculateCheapestFoodLocation(map, gameData.you.head);
@@ -301,7 +312,11 @@ function handleMove(request, response) {
     move = pathToFood[0].direction;
     console.log("HEADING TO FOOD MOVE: " + move);
   } else {
-    const furthestOpenPoint = getFurthestOpenPoint(map, board.height, board.width);
+    const furthestOpenPoint = getFurthestOpenPoint(
+      map,
+      board.height,
+      board.width
+    );
 
     if (furthestOpenPoint.cost > 0) {
       const path = getPath(furthestOpenPoint);
