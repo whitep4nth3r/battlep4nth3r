@@ -4,6 +4,8 @@ const visualise = require("./visualise");
 
 /**
  * SHOULD WE EAT FOOD ACTUALLY?
+ *
+ * losing in head to heads??
  */
 
 const PORT = process.env.PORT || 3000;
@@ -26,8 +28,8 @@ function handleIndex(request, response) {
     apiversion: "1",
     author: "whitep4nth3r",
     color: "#ffb626",
-    head: "bendr",
-    tail: "pixel",
+    head: "space-helmet",
+    tail: "rocket",
   };
   response.status(200).json(battlesnakeInfo);
 }
@@ -45,12 +47,12 @@ function handleStart(request, response) {
  * @param {*} boardHeight
  * @param {*} boardWidth
  * @param {*} foodArray
- * @param {*} thisSnake
+ * @param {*} mySnake
  * @param {*} allSnakes
  * @returns Map();
  */
 
-function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnakes, hazardArray) {
+function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes, hazardArray) {
   const map = new Map();
 
   for (let x = 0; x < boardWidth; x++) {
@@ -86,9 +88,8 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
     // First element of the snake body is the head
     const head = snake.body[0];
 
-    if (snake.id !== thisSnake.id) {
-      // Increase the price of squares around the head IF the body is not shorter than our body
-
+    // Increase the price of squares around the other snake heads my snake is shorter
+    if (snake.id !== mySnake.id && mySnake.body.length < snake.body.length) {
       if (map.has(`${head.x - 1},${head.y}`)) {
         const mapBlock = map.get(`${head.x - 1},${head.y}`);
         mapBlock.price = 99999;
@@ -140,9 +141,9 @@ function createMapForMove(boardHeight, boardWidth, foodArray, thisSnake, allSnak
 
   // Re add thisSnake head
   // this is the start of the pathing
-  map.set(`${thisSnake.head.x},${thisSnake.head.y}`, {
-    x: thisSnake.head.x,
-    y: thisSnake.head.y,
+  map.set(`${mySnake.head.x},${mySnake.head.y}`, {
+    x: mySnake.head.x,
+    y: mySnake.head.y,
     cost: 0,
     food: false,
     previous: null,
@@ -395,12 +396,19 @@ function handleMove(request, response) {
     board.snakes,
     board.hazards,
   );
+
   visualise.startMove(map);
   // IF health is >50, and a shorter snake exists, ATTACK!
   const snakeToAttack = getShortestSnake(board.snakes);
   let target;
 
-  if (gameData.you.health > 50 && snakeToAttack.body.length < gameData.you.body.length) {
+  const myIdIsAttackSnakeID = gameData.you.id === snakeToAttack.id;
+
+  if (
+    !myIdIsAttackSnakeID &&
+    gameData.you.health > 50 &&
+    snakeToAttack.body.length < gameData.you.body.length
+  ) {
     target = calculateCheapestPathToLocation(map, gameData.you.head, snakeToAttack.body[0]);
   } else {
     target = calculateCheapestFoodLocation(map, gameData.you.head);
@@ -428,6 +436,14 @@ function handleMove(request, response) {
 }
 
 function handleEnd(request, response) {
-  console.log("END");
+  const me = request.body.you.id;
+  const winner = request.body.board.snakes[0].id;
+
+  if (me === winner) {
+    console.log("WINNER!");
+  } else {
+    console.log("LOSER!");
+  }
+
   response.status(200).send("ok");
 }
