@@ -58,6 +58,11 @@ function handleStart(request, response) {
 function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes, hazardArray) {
   const map = new Map();
 
+  const snakeHeadCost = 100;
+  const tunnelCost = 20;
+  const hazardcost = 15;
+  const defaultCost = 1;
+
   for (let x = 0; x < boardWidth; x++) {
     for (let y = 0; y < boardHeight; y++) {
       map.set(`${x},${y}`, {
@@ -67,7 +72,7 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
         food: false,
         previous: null,
         direction: null,
-        price: 1,
+        price: defaultCost,
       });
     }
   }
@@ -85,7 +90,7 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
     // Get from the map
     let entry = map.get(`${food.x},${food.y}`);
     // Update
-    entry.price = 15;
+    entry.price = hazardcost;
     // Re-set in the map
     map.set(`${food.x},${food.y}`, entry);
   }
@@ -99,7 +104,7 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
     clearAround += map.has(`${square.x},${square.y - 1}`) ? 1 : 0;
 
     if (clearAround < 3 && !square.food) {
-      square.price = 20;
+      square.price = tunnelCost;
     }
     map.set(key, square);
   }
@@ -112,30 +117,31 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
 
     // First element of the snake body is the head
     const head = snake.body[0];
+
     // Increase the price of squares around the other snake heads my snake is shorter
     // or same length
     if (snake.id !== mySnake.id && mySnake.body.length <= snake.body.length) {
       if (map.has(`${head.x - 1},${head.y}`)) {
         const mapBlock = map.get(`${head.x - 1},${head.y}`);
-        mapBlock.price = 99999;
+        mapBlock.price = snakeHeadCost;
         map.set(`${head.x - 1},${head.y}`, mapBlock);
       }
 
       if (map.has(`${head.x + 1},${head.y}`)) {
         const mapBlock = map.get(`${head.x + 1},${head.y}`);
-        mapBlock.price = 99999;
+        mapBlock.price = snakeHeadCost;
         map.set(`${head.x + 1},${head.y}`, mapBlock);
       }
 
       if (map.has(`${head.x},${head.y - 1}`)) {
         const mapBlock = map.get(`${head.x},${head.y - 1}`);
-        mapBlock.price = 99999;
+        mapBlock.price = snakeHeadCost;
         map.set(`${head.x},${head.y - 1}`, mapBlock);
       }
 
       if (map.has(`${head.x},${head.y + 1}`)) {
         const mapBlock = map.get(`${head.x},${head.y + 1}`);
-        mapBlock.price = 99999;
+        mapBlock.price = snakeHeadCost;
         map.set(`${head.x},${head.y + 1}`, mapBlock);
       }
     }
@@ -408,7 +414,7 @@ function handleMove(request, response) {
 
   if (
     !iAmShortestSnek &&
-    gameData.you.health > 50 &&
+    gameData.you.health > 60 &&
     snakeToAttack.body.length < gameData.you.body.length
   ) {
     target = calculateCheapestPathToLocation(map, gameData.you.head, snakeToAttack.body[0]);
