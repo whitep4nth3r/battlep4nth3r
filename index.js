@@ -2,6 +2,8 @@ const express = require("express");
 const morgan = require("morgan");
 const visualise = require("./visualise");
 
+let MOVE_COUNT = 0;
+
 /**
  * SHOULD WE EAT FOOD ACTUALLY?
  *
@@ -36,6 +38,7 @@ function handleIndex(request, response) {
 
 function handleStart(request, response) {
   console.log("START");
+  MOVE_COUNT = 0;
   response.status(200).send("ok");
 
   visualise.startVisualise();
@@ -78,6 +81,28 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
     map.set(`${food.x},${food.y}`, entry);
   }
 
+  for (hazard of hazardArray) {
+    // Get from the map
+    let entry = map.get(`${food.x},${food.y}`);
+    // Update
+    entry.price = 15;
+    // Re-set in the map
+    map.set(`${food.x},${food.y}`, entry);
+  }
+
+  // Set the price of the square to more than the longest possible path if it's only got less than 3 clear sides
+  for (const [key, square] of map) {
+    let clearAround = 0;
+    clearAround += map.has(`${square.x + 1},${square.y}`) ? 1 : 0;
+    clearAround += map.has(`${square.x - 1},${square.y}`) ? 1 : 0;
+    clearAround += map.has(`${square.x},${square.y + 1}`) ? 1 : 0;
+    clearAround += map.has(`${square.x},${square.y - 1}`) ? 1 : 0;
+
+    if (clearAround < 3 && !square.food) {
+      square.price = 20;
+    }
+    map.set(key, square);
+  }
   // Remove all snakeParts from map
   // we cannot move here
   for (snake of allSnakes) {
@@ -87,9 +112,9 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
 
     // First element of the snake body is the head
     const head = snake.body[0];
-
     // Increase the price of squares around the other snake heads my snake is shorter
-    if (snake.id !== mySnake.id && mySnake.body.length < snake.body.length) {
+    // or same length
+    if (snake.id !== mySnake.id && mySnake.body.length <= snake.body.length) {
       if (map.has(`${head.x - 1},${head.y}`)) {
         const mapBlock = map.get(`${head.x - 1},${head.y}`);
         mapBlock.price = 99999;
@@ -114,29 +139,6 @@ function createMapForMove(boardHeight, boardWidth, foodArray, mySnake, allSnakes
         map.set(`${head.x},${head.y + 1}`, mapBlock);
       }
     }
-  }
-
-  for (hazard of hazardArray) {
-    // Get from the map
-    let entry = map.get(`${food.x},${food.y}`);
-    // Update
-    entry.price = 15;
-    // Re-set in the map
-    map.set(`${food.x},${food.y}`, entry);
-  }
-
-  // Set the price of the square to more than the longest possible path if it's only got less than 3 clear sides
-  for (const [key, square] of map) {
-    let clearAround = 0;
-    clearAround += map.has(`${square.x + 1},${square.y}`) ? 1 : 0;
-    clearAround += map.has(`${square.x - 1},${square.y}`) ? 1 : 0;
-    clearAround += map.has(`${square.x},${square.y + 1}`) ? 1 : 0;
-    clearAround += map.has(`${square.x},${square.y - 1}`) ? 1 : 0;
-
-    if (clearAround < 3 && !square.food) {
-      square.price = 20;
-    }
-    map.set(key, square);
   }
 
   // Re add thisSnake head
@@ -402,10 +404,10 @@ function handleMove(request, response) {
   const snakeToAttack = getShortestSnake(board.snakes);
   let target;
 
-  const myIdIsAttackSnakeID = gameData.you.id === snakeToAttack.id;
+  const iAmShortestSnek = gameData.you.id === snakeToAttack.id;
 
   if (
-    !myIdIsAttackSnakeID &&
+    !iAmShortestSnek &&
     gameData.you.health > 50 &&
     snakeToAttack.body.length < gameData.you.body.length
   ) {
@@ -430,6 +432,9 @@ function handleMove(request, response) {
     }
   }
 
+  MOVE_COUNT++;
+
+  console.log(`****WE ARE SENDING MOVE ${MOVE_COUNT}`, move, "****");
   response.status(200).send({
     move,
   });
@@ -437,12 +442,17 @@ function handleMove(request, response) {
 
 function handleEnd(request, response) {
   const me = request.body.you.id;
-  const winner = request.body.board.snakes[0].id;
+  const areSnakes = request.body.board.snakes.length > 0;
+  const winner = areSnakes ? request.body.board.snakes[0].id : null;
 
-  if (me === winner) {
-    console.log("WINNER!");
+  if (winner === null) {
+    console.log("DRAW!");
   } else {
-    console.log("LOSER!");
+    if (me === winner) {
+      console.log("WINNER!");
+    } else {
+      console.log("LOSER!");
+    }
   }
 
   response.status(200).send("ok");
